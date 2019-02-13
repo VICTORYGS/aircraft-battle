@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>$Title$</title>
+    <script src="https://cdn.bootcss.com/vue/2.5.16/vue.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+    <style>
+        #app{overflow:hidden;position:relative;display:flex;flex-flow:column;justify-content:center;align-items: center;width:800px;height:880px;margin:auto;background:#d2fcfe;}
+      .cloud{
+        animation: f 3s infinite;
+      }
+      @keyframes f {
+        0%{}
+        50%{height:8px}
+        100%{height:30px }
+      }
+      .cloud1{
+        animation: f1 3s infinite;
+      }
+      @keyframes f1 {
+        0%{}
+        50%{height:3px}
+        100%{height:11px }
+      }
+    </style>
+</head>
+<body>
+<div id="app" ref="c">
+  <meteorite v-for="k of list1" :k="k"></meteorite>
+<bullet :x="x" v-for="k of list" :k="k"></bullet>
+    <span style="position:absolute;bottom:0px" :style="{'right':x+'px'}">
+      <img src="./game/plane.png" width="80px">
+      <div class="cloud" style="width:6px;height:30px;background:linear-gradient(#97fbfe,cornflowerblue);position:absolute;top:65%;left:5px;border-radius:3px "></div>
+      <div class="cloud1" style="width:6px;height:11px;background:linear-gradient(#97fbfe,cornflowerblue);position:absolute;top:65%;left:15px;border-radius:3px "></div>
+      <div class="cloud1" style="width:6px;height:11px;background:linear-gradient(#97fbfe,cornflowerblue);position:absolute;top:65%;right:15px;border-radius:3px "></div>
+      <div class="cloud" style="width:6px;height:30px;background:linear-gradient(#97fbfe,cornflowerblue);position:absolute;top:65%;right:5px;border-radius:3px "></div>
+    </span>
+  <span style="background:linear-gradient(#d6d666,cornflowerblue);font-size:30px;font-weight:bold;color:transparent;-webkit-background-clip:text;position: absolute;bottom:50%">Score：{{score}}分</span>
+</div>
+<div style="text-align: center"><img src="./game/direction.jpg" width="80px" style="margin:10px"></div>
+<script>
+  let stone={}
+  let bus=new Vue()
+    new Vue({
+      data:{
+        x:360,list:0,timer:null,list1:0,stone:stone,score:0
+      },
+      methods:{
+            direction(e){
+                if(e.keyCode==38){
+                    // 开始游戏
+                  if(!this.timer){
+                    this.list=1
+                    this.list1=1
+                  this.timer=setInterval(()=>{this.product()},300)
+                  }
+                }else if(e.keyCode==37){
+                    // 左移
+                    (this.x<720)&&(this.x+=20)
+                }else if(e.keyCode==39){
+                    // 右移
+                    (this.x>0)&&(this.x-=20)
+                }else if(e.keyCode==40){
+                    // 下移 停止
+                    clearInterval(this.timer)
+                    this.list=0
+                    this.list1=0
+                    this.timer=null
+                }
+            },
+            // 不断发射
+            product(){
+              this.list++
+              if(this.list%5==0)this.list1++
+            }
+        },
+      components:{
+        'bullet':{
+          data(){return{y:810,bx:null,timer:null,showa:0,showb:0}},
+          props:['x','k'],
+          template:`<span style="position:absolute;" :style="{'right':bx+'px','top':y+'px'}">
+                        <div style="width:12px;display:inline-block"></div>
+                        <div ref="a" style="display:inline-block;width:6px;height:15px;border-radius:50%;background:linear-gradient(#f8ab7c,#f82c09,#f8ab7c)"></div><img src="./game/blast.png" style="position: absolute;width:60px;left:-10px;top:-25px" v-show="showa">
+                        <div style="width:12px;display:inline-block"></div>
+                        <div style="width:12px;display:inline-block"></div>
+                        <div ref="b" style="display:inline-block;width:6px;height:15px;border-radius:50%;background:linear-gradient(#f8ab7c,#f82c09,#f8ab7c)"></div><img src="./game/blast.png" style="position: absolute;width:60px;left:35px;top:-25px" v-show="showb">
+                        <div style="width:12px;display:inline-block"></div>
+                      </span>`,
+          methods:{},
+          mounted(){
+            this.bx=this.x
+            this.timer=setInterval(()=>{
+              if(this.y>-15){
+                (this.y-=5)
+                for(let v in stone){
+                  if(((this.bx+70)<stone[v].x)||((this.bx)>(stone[v].x+38))){
+                  }else {
+                    if((this.y-stone[v].y)<0){
+                      if((this.bx+35)>(stone[v].x+20)){
+                        if($(this.$refs.b).css('opacity')==0){continue;}
+                        bus.$emit('delete',v.slice(1))
+                        this.showb=1
+                        setTimeout(()=>{this.showb=0},90)
+                        $(this.$refs.b).css('opacity',0)
+                      }else {
+                        if($(this.$refs.a).css('opacity')==0){continue;}
+                        bus.$emit('delete',v.slice(1))
+                        this.showa=1
+                        setTimeout(()=>{this.showa=0},90)
+                        $(this.$refs.a).css('opacity',0)
+                      }
+                    }
+                  }
+                }
+              }else{
+                clearInterval(this.timer)
+                this.$destroy()
+              }
+            },20)
+          },
+          beforeDestroy(){
+            $(this.$el).remove()
+          }
+        },
+        'meteorite':{
+          props:['k'],
+          data(){return{x:Math.floor(Math.random()*760),y:-70,timer:null}},
+          template:`<img src="./game/meteorite.png" width="50px" style="position:absolute" :style="{top:y+'px',right:x+'px'}">`,
+          methods:{},
+          mounted(){
+            let that=this
+            bus.$on('delete',function (v) {
+              if(v==that.k){
+                clearInterval(that.timer)
+                delete stone['k'+that.k];
+                that.$destroy()
+              }
+            });
+            this.timer=setInterval(()=>{
+              if(this.y<800){
+                (this.y+=5)
+                stone['k'+this.k]={x:this.x,y:this.y}
+              }else{
+                clearInterval(this.timer)
+                delete stone['k'+this.k];
+                this.$destroy()
+              }
+            },20)
+          },
+          beforeDestroy(){
+            $(this.$el).remove()
+          }
+        },
+
+      },
+      mounted(){
+        bus.$on('delete',()=>{this.score++})
+        addEventListener('keydown',this.direction)
+        this.timer=setInterval(()=>{
+          this.product()
+        },100)
+      }
+
+    }).$mount('#app')
+
+</script>
+</body>
+</html>
